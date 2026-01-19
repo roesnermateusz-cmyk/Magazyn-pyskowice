@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#10b981">
+    <title>ResInvest - Magazyn Pyskowice</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+            background: #fff;
+            padding: 16px;
+            color: #000;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .header {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 24px;
+            margin-bottom: 24px;
+            text-align: center;
+            border: 2px solid #10b981;
+        }
+        .company-name {
+            font-size: 32px;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 8px;
+        }
+        .system-name {
+            font-size: 16px;
+            color: #374151;
+            font-weight: 500;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            padding: 20px;
+            border-radius: 12px;
+            border: 2px solid;
+        }
+        .stat-card.green { background: #d1fae5; border-color: #10b981; }
+        .stat-card.blue { background: #dbeafe; border-color: #3b82f6; }
+        .stat-card.orange { background: #fed7aa; border-color: #f97316; }
+        .stat-label {
+            font-size: 14px;
+            color: #374151;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 4px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #e5e7eb;
+        }
+        h2 {
+            color: #000;
+            font-size: 20px;
+            margin-bottom: 16px;
+            font-weight: 600;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #000;
+            margin-bottom: 8px;
+        }
+        input, select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #000;
+            background: #fff;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+        .btn-group { display: flex; gap: 12px; flex-wrap: wrap; }
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-primary { background: #10b981; color: #fff; flex: 1; }
+        .btn-primary:hover { background: #059669; }
+        .btn-secondary { background: #3b82f6; color: #fff; }
+        .btn-secondary:hover { background: #2563eb; }
+        .btn-purple { background: #a78bfa; color: #000; }
+        .btn-purple:hover { background: #8b5cf6; }
+        .btn-gray { background: #e5e7eb; color: #000; }
+        .btn-gray:hover { background: #d1d5db; }
+        .btn-yellow { background: #fbbf24; color: #000; }
+        .btn-yellow:hover { background: #f59e0b; }
+        .btn-red { background: #ef4444; color: #fff; }
+        .btn-red:hover { background: #dc2626; }
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #e5e7eb;
+            color: #000;
+        }
+        th {
+            background: #f3f4f6;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        tr:hover { background: #f9fafb; }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 2px solid;
+        }
+        .badge-pz {
+            background: #dbeafe;
+            color: #000;
+            border-color: #3b82f6;
+        }
+        .badge-wz {
+            background: #fed7aa;
+            color: #000;
+            border-color: #f97316;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            padding: 16px;
+            overflow-y: auto;
+        }
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 800px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 2px solid #10b981;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #000;
+            padding: 0;
+        }
+        .vehicle-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: #f9fafb;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #e5e7eb;
+        }
+        .vehicle-name {
+            flex: 1;
+            font-weight: 600;
+            color: #000;
+        }
+        .vehicle-actions {
+            display: flex;
+            gap: 8px;
+        }
+        @media (max-width: 768px) {
+            .company-name { font-size: 24px; }
+            .system-name { font-size: 14px; }
+            .form-grid { grid-template-columns: 1fr; }
+            .stat-value { font-size: 28px; }
+            .btn-group { flex-direction: column; }
+            button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="company-name">ResInvest Commodities</div>
+            <div class="system-name">System magazynowy zrębki drzewnej - magazyn Pyskowice</div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card green">
+                <div class="stat-label">Aktualny Stan</div>
+                <div class="stat-value" id="currentStock">0.00</div>
+                <div class="stat-label">metrów przestrzennych</div>
+            </div>
+            <div class="stat-card blue">
+                <div class="stat-label">PZ w tym miesiącu</div>
+                <div class="stat-value" id="monthlyPZ">0.00</div>
+                <div class="stat-label">mp</div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-label">WZ w tym miesiącu</div>
+                <div class="stat-value" id="monthlyWZ">0.00</div>
+                <div class="stat-label">mp</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Dodaj Operację</h2>
+            <div class="form-grid">
+                <div><label>Data</label><input type="date" id="opDate"></div>
+                <div><label>Typ</label><select id="opType" onchange="app.updateLabels()"><option value="PZ">PZ (Przyjęcie)</option><option value="WZ">WZ (Wydanie)</option></select></div>
+                <div>
+                    <label>Pojazd <button type="button" class="btn-secondary btn-small" onclick="app.showModal('manageVehicles')" style="float:right;">Zarządzaj</button></label>
+                    <input type="text" id="opVehicle" list="vehiclesList" placeholder="Wpisz lub wybierz" style="text-transform:uppercase;">
+                    <datalist id="vehiclesList"></datalist>
+                </div>
+                <div><label>Nr bieżący</label><input type="number" id="opNumber" readonly></div>
+                <div><label id="contractorLabel">Dostawca</label><input type="text" id="opContractor"></div>
+                <div><label>Objętość (mp)</label><input type="number" step="0.01" id="opVolume"></div>
+                <div><label id="operatorLabel">Przyjął</label><input type="text" id="opOperator"></div>
+            </div>
+            <div class="btn-group">
+                <button class="btn-primary" onclick="app.addOperation()">Dodaj Operację</button>
+                <button class="btn-secondary" onclick="app.showModal('calculator')">🔢 Kalkulator</button>
+                <button class="btn-purple" onclick="app.showModal('report')">📄 Raport</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Zarządzanie Danymi</h2>
+            <div class="btn-group">
+                <button class="btn-secondary" onclick="app.exportToCSV()">📄 Export CSV</button>
+                <button class="btn-yellow" onclick="app.backupData()">💾 Backup</button>
+                <label class="btn-primary" style="margin:0;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;">
+                    📥 Przywróć<input type="file" accept=".json" onchange="app.restoreData(event)" style="display:none;">
+                </label>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Raport na Pojazd</h2>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead><tr><th>Pojazd</th><th style="text-align:right;">PZ (mp)</th><th style="text-align:right;">WZ (mp)</th></tr></thead>
+                    <tbody id="vehicleReportBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Historia Operacji</h2>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead><tr><th>Data</th><th>Typ</th><th>Pojazd</th><th style="text-align:right;">Nr</th><th>Dostawca/Odbiorca</th><th style="text-align:right;">Objętość</th><th>Przyjął/Wystawił</th><th style="text-align:center;">Akcje</th></tr></thead>
+                    <tbody id="operationsTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="calculatorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2>🔢 Kalkulator Objętości</h2><button class="close-btn" onclick="app.hideModal('calculator')">×</button></div>
+            <div style="display:grid;gap:16px;">
+                <div><label>Pojazd</label><input type="text" id="calcVehicle" list="vehiclesList" placeholder="Wpisz lub wybierz" style="text-transform:uppercase;"></div>
+                <div><label>Długość (m)</label><input type="number" step="0.01" id="calcLength" oninput="app.calcVolume()"></div>
+                <div><label>Szerokość (m)</label><input type="number" step="0.01" id="calcWidth" oninput="app.calcVolume()"></div>
+                <div><label>Wysokość (m)</label><input type="number" step="0.01" id="calcHeight" oninput="app.calcVolume()"></div>
+                <div id="calcResult" style="display:none;background:#dbeafe;padding:16px;border-radius:8px;border:2px solid #3b82f6;">
+                    <div style="font-size:14px;font-weight:600;">Obliczona objętość:</div>
+                    <div id="calcResultValue" style="font-size:32px;font-weight:bold;"></div>
+                </div>
+            </div>
+            <div class="btn-group" style="margin-top:24px;">
+                <button class="btn-secondary" onclick="app.applyCalc()">Zatwierdź</button>
+                <button class="btn-gray" onclick="app.hideModal('calculator')">Anuluj</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="manageVehiclesModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header"><h2>⚙️ Zarządzaj Pojazdami</h2><button class="close-btn" onclick="app.hideModal('manageVehicles')">×</button></div>
+            
+            <div style="margin-bottom:20px;">
+                <label>Dodaj nowy pojazd</label>
+                <div style="display:flex;gap:12px;">
+                    <input type="text" id="newVehicleInput" placeholder="np. SK7H433" style="flex:1;text-transform:uppercase;">
+                    <button class="btn-primary" onclick="app.addVehicleFromManager()">+ Dodaj</button>
+                </div>
+            </div>
+
+            <div id="vehicleListContainer"></div>
+        </div>
+    </div>
+
+    <div id="editOperationModal" class="modal">
+        <div class="modal-content" style="max-width:900px;">
+            <div class="modal-header"><h2>✏️ Edytuj Operację</h2><button class="close-btn" onclick="app.hideModal('editOperation')">×</button></div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;">
+                <div><label>Data</label><input type="date" id="editDate"></div>
+                <div><label>Typ</label><select id="editType"><option value="PZ">PZ</option><option value="WZ">WZ</option></select></div>
+                <div><label>Pojazd</label><input type="text" id="editVehicle" list="vehiclesList" style="text-transform:uppercase;"></div>
+                <div><label>Nr</label><input type="number" id="editNumber"></div>
+                <div><label id="editContractorLabel">Dostawca</label><input type="text" id="editContractor"></div>
+                <div><label>Objętość</label><input type="number" step="0.01" id="editVolume"></div>
+                <div><label id="editOperatorLabel">Przyjął</label><input type="text" id="editOperator"></div>
+            </div>
+            <div class="btn-group" style="margin-top:24px;">
+                <button class="btn-secondary" onclick="app.saveEdit()">Zapisz</button>
+                <button class="btn-gray" onclick="app.hideModal('editOperation')">Anuluj</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="reportModal" class="modal">
+        <div class="modal-content" style="border-color:#a78bfa;">
+            <div class="modal-header"><h2>Konfiguracja Raportu</h2><button class="close-btn" onclick="app.hideModal('report')">×</button></div>
+            <div style="display:grid;gap:16px;">
+                <div><label>Okres</label><select id="reportPeriod" onchange="app.togglePeriod()"><option value="monthly">Miesięczny</option><option value="yearly">Roczny</option></select></div>
+                <div id="monthField"><label>Miesiąc</label><input type="month" id="reportMonth"></div>
+                <div id="yearField" style="display:none;"><label>Rok</label><input type="number" id="reportYear"></div>
+                <div><label>Typ</label><select id="reportType"><option value="complete">Kompletny</option><option value="PZ">PZ</option><option value="WZ">WZ</option></select></div>
+            </div>
+            <div class="btn-group" style="margin-top:24px;">
+                <button class="btn-purple" onclick="app.generateReport()">Generuj</button>
+                <button class="btn-gray" onclick="app.hideModal('report')">Anuluj</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="viewReportModal" class="modal">
+        <div class="modal-content" style="max-width:1200px;">
+            <div class="modal-header"><h2 id="reportTitle">Raport</h2><button class="close-btn" onclick="app.hideModal('viewReport')">×</button></div>
+            <div id="reportContent"></div>
+            <div class="btn-group" style="margin-top:24px;">
+                <button class="btn-secondary" onclick="window.print()">🖨️ Drukuj</button>
+                <button class="btn-gray" onclick="app.hideModal('viewReport')">Zamknij</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

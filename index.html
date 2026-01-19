@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="pl">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ResInvest Commodities - Magazyn</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+        :root { --green: #10b981; --blue: #3b82f6; --bg: #f9fafb; }
+        * { box-sizing: border-box; font-family: -apple-system, system-ui, sans-serif; }
+        body { background: var(--bg); padding: 10px; margin: 0; }
+
+        .header { text-align: center; background: white; padding: 15px; border-bottom: 3px solid var(--green); border-radius: 0 0 15px 15px; margin-bottom: 15px; }
+        .company { font-size: 20px; font-weight: bold; color: #111; }
+
+        .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+        .stat-box { background: white; padding: 12px; border-radius: 12px; text-align: center; border: 1px solid #ddd; }
+        .stat-main { grid-column: span 2; border-left: 5px solid var(--green); }
+        .stat-val { font-size: 22px; font-weight: bold; display: block; }
+        .stat-label { font-size: 11px; color: #666; text-transform: uppercase; }
+
+        .card { background: white; padding: 15px; border-radius: 12px; border: 1px solid #ddd; margin-bottom: 15px; }
+        label { display: block; font-size: 13px; font-weight: bold; margin-bottom: 5px; color: #444; }
+        input, select { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
+
+        button { width: 100%; padding: 14px; border-radius: 8px; border: none; font-weight: bold; font-size: 15px; cursor: pointer; transition: 0.2s; }
+        .btn-green { background: var(--green); color: white; }
+        .btn-blue { background: var(--blue); color: white; }
+        .btn-gray { background: #e5e7eb; color: #374151; }
+        .btn-edit { background: #fef08a; color: #854d0e; width: auto; padding: 6px 12px; font-size: 12px; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; padding: 15px; }
+        .modal-content { background: white; padding: 20px; border-radius: 15px; max-height: 90vh; overflow-y: auto; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+        th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: #f3f4f6; }
+    </style>
+ </head>
+ <body>
+  <div class="header">
+   <div class="company">ResInvest Commodities</div>
+   <div style="font-size: 12px; color: #666;">Magazyn Pyskowice</div>
+  </div>
+  <div class="stats">
+   <div class="stat-box stat-main">
+    <span class="stat-label">Aktualny Stan</span> <span id="stockVal" class="stat-val">0.00 mp</span>
+   </div>
+   <div class="stat-box">
+    <span class="stat-label">PZ (Miesiąc)</span> <span id="pzM" style="color: green; font-weight: bold;">0 mp</span>
+   </div>
+   <div class="stat-box">
+    <span class="stat-label">WZ (Miesiąc)</span> <span id="wzM" style="color: blue; font-weight: bold;">0 mp</span>
+   </div>
+  </div>
+  <div class="card">
+   <label>Data operacji</label> <input type="date" id="fDate"> <label>Typ operacji</label> <select id="fType"> <option value="PZ">PZ - Przyjęcie</option> <option value="WZ">WZ - Wydanie</option> </select> <label>Numer rejestracyjny</label>
+   <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+    <select id="fVehicle" style="margin-bottom: 0;"></select>
+    <button onclick="openVehicles()" class="btn-gray" style="width: auto;">ZARZĄDZAJ</button>
+   </div>
+   <label>Objętość (mp)</label> <input type="number" id="fVolume" step="0.01" placeholder="Wpisz mp">
+   <button class="btn-green" onclick="saveOperation()">ZAPISZ I DODAJ DO STANU</button>
+  </div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 30px;">
+   <button class="btn-blue" onclick="openCalc()">🔢 KALKULATOR</button>
+   <button class="btn-blue" onclick="generateReport()">📄 RAPORT MIES.</button>
+  </div>
+  <div id="modalVeh" class="modal">
+   <div class="modal-content">
+    <h2 id="vehTitle">Dodaj Pojazd</h2>
+    <input type="hidden" id="editIdx" value="-1"> <input type="text" id="vehInput" placeholder="Numer rejestracyjny" style="text-transform: uppercase;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px;">
+     <button class="btn-green" id="vehSaveBtn" onclick="saveVehicle()">ZAPISZ</button>
+     <button class="btn-gray" onclick="closeModals()">ANULUJ</button>
+    </div>
+    <label>Wyszukaj</label> <input type="text" id="vehSearch" placeholder="Wpisz część numeru" oninput="renderVehiclesInModal()">
+    <div id="vehList" style="border-top: 1px solid #ddd; padding-top: 15px;"></div>
+   </div>
+  </div>
+  <div id="modalCalc" class="modal">
+   <div class="modal-content">
+    <h2>Kalkulator Objętości</h2>
+    <label>Długość (m)</label> <input type="number" id="cL" step="0.01"> <label>Szerokość (m)</label> <input type="number" id="cW" step="0.01"> <label>Wysokość (m)</label> <input type="number" id="cH" step="0.01">
+    <div id="cRes" style="font-size: 24px; font-weight: bold; text-align: center; padding: 15px; color: var(--blue);">0.00 mp</div>
+    <button class="btn-green" onclick="applyCalc()">ZATWIERDŹ WYNIK</button>
+    <button class="btn-gray" onclick="closeModals()" style="margin-top: 10px;">WRÓĆ</button>
+   </div>
+  </div>
+  <div id="modalRep" class="modal">
+   <div class="modal-content">
+    <h2>Raport Miesięczny</h2>
+    <label>Wybierz miesiąc</label> <input type="month" id="repMonth" value="">
+    <button class="btn-blue" onclick="generateReport()">ODŚWIEŻ</button>
+    <div id="reportArea"></div>
+    <button class="btn-gray" onclick="closeModals()" style="margin-top: 20px;">ZAMKNIJ RAPORT</button>
+    <button class="btn-blue" onclick="exportToExcel()" style="margin-top: 5px;">POBIERZ EXCEL</button>
+   </div>
+  </div>
+  <script>
+        let db = JSON.parse(localStorage.getItem('resDB_v6')) || { ops: [], vehicles: ['SK7H433'] };
+
+        function updateMain() {
+            localStorage.setItem('resDB_v6', JSON.stringify(db));
+
+            const month = new Date().toISOString().substring(0, 7);
+            let stock = 0, pz = 0, wz = 0;
+
+            db.ops.forEach(o => {
+                if (o.type === 'PZ') {
+                    stock += o.vol;
+                    if (o.date.startsWith(month)) pz += o.vol;
+                } else {
+                    stock -= o.vol;
+                    if (o.date.startsWith(month)) wz += o.vol;
+                }
+            });
+
+            document.getElementById('stockVal').innerText = stock.toFixed(2) + ' mp';
+            document.getElementById('pzM').innerText = pz.toFixed(2) + ' mp';
+            document.getElementById('wzM').innerText = wz.toFixed(2) + ' mp';
+
+            renderVehicleSelect();
+        }
+
+        function renderVehicleSelect() {
+            const sel = document.getElementById('fVehicle');
+            sel.innerHTML = db.vehicles
+                .slice()
+                .sort()
+                .map(v => `<option value="${v}">${v}</option>`)
+                .join('');
+        }
+
+        function openVehicles() {
+            document.getElementById('modalVeh').style.display = 'block';
+            resetVehForm();
+            renderVehiclesInModal();
+        }
+
+        function resetVehForm() {
+            document.getElementById('vehTitle').innerText = "Dodaj Pojazd";
+            document.getElementById('vehSaveBtn').innerText = "ZAPISZ";
+            document.getElementById('vehInput').value = "";
+            document.getElementById('editIdx').value = "-1";
+            document.getElementById('vehSearch').value = "";
+        }
+
+        function saveVehicle() {
+            const input = document.getElementById('vehInput');
+            const val = input.value.trim().toUpperCase();
+            const editIdx = parseInt(document.getElementById('editIdx').value);
+
+            if (!val) {
+                alert("Wpisz numer rejestracyjny");
+                return;
+            }
+
+            if (db.vehicles.includes(val) && editIdx === -1) {
+                alert("Ten pojazd już istnieje");
+                return;
+            }
+
+            if (editIdx === -1) {
+                db.vehicles.push(val);
+            } else {
+                db.vehicles[editIdx] = val;
+            }
+
+            localStorage.setItem('resDB_v6', JSON.stringify(db));
+            renderVehiclesInModal();
+            updateMain();
+
+            // automatyczne ustawienie nowego pojazdu w selectcie
+            document.getElementById('fVehicle').value = val;
+
+            input.value = "";
+            document.getElementById('editIdx').value = "-1";
+        }
+
+        function renderVehiclesInModal() {
+            const search = document.getElementById('vehSearch').value.trim().toUpperCase();
+            const list = document.getElementById('vehList');
+
+            const filtered = db.vehicles
+                .filter(v => v.includes(search))
+                .sort();
+
+            list.innerHTML = filtered
+                .map((v, i) => `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #eee;">
+                        <span>${v}</span>
+                        <div>
+                            <button class="btn-edit" onclick="startEditVeh('${v}')">Edytuj</button>
+                            <button onclick="deleteVeh('${v}')" style="color:red; background:none; font-size:12px; width:auto; padding:0 5px;">Usuń</button>
+                        </div>
+                    </div>
+                `)
+                .join('');
+        }
+
+        function startEditVeh(v) {
+            const idx = db.vehicles.indexOf(v);
+            if (idx === -1) return;
+
+            document.getElementById('vehTitle').innerText = "Edytuj Pojazd";
+            document.getElementById('vehSaveBtn').innerText = "ZAPISZ ZMIANY";
+            document.getElementById('vehInput').value = v;
+            document.getElementById('editIdx').value = idx;
+            document.getElementById('vehInput').focus();
+        }
+
+        function deleteVeh(v) {
+            const idx = db.vehicles.indexOf(v);
+            if (idx === -1) return;
+
+            if (confirm("Usunąć auto z listy?")) {
+                db.vehicles.splice(idx, 1);
+                localStorage.setItem('resDB_v6', JSON.stringify(db));
+                renderVehiclesInModal();
+                updateMain();
+            }
+        }
+
+        function saveOperation() {
+            const date = document.getElementById('fDate').value;
+            const type = document.getElementById('fType').value;
+            const veh = document.getElementById('fVehicle').value;
+            const vol = parseFloat(document.getElementById('fVolume').value);
+
+            if (!date || isNaN(vol) || !veh) {
+                alert("Wypełnij wszystkie pola!");
+                return;
+            }
+
+            db.ops.push({ date, type, veh, vol });
+            updateMain();
+            document.getElementById('fVolume').value = '';
+            alert("Operacja zapisana!");
+        }
+
+        function openCalc() {
+            document.getElementById('modalCalc').style.display = 'block';
+            ['cL', 'cW', 'cH'].forEach(id => {
+                document.getElementById(id).oninput = () => {
+                    const r = (document.getElementById('cL').value || 0)
+                            * (document.getElementById('cW').value || 0)
+                            * (document.getElementById('cH').value || 0);
+                    document.getElementById('cRes').innerText = r.toFixed(2) + ' mp';
+                };
+            });
+        }
+
+        function applyCalc() {
+            const r = (document.getElementById('cL').value || 0)
+                    * (document.getElementById('cW').value || 0)
+                    * (document.getElementById('cH').value || 0);
+            document.getElementById('fVolume').value = r.toFixed(2);
+            closeModals();
+        }
+
+        function generateReport() {
+            const month = document.getElementById('repMonth').value || new Date().toISOString().substring(0, 7);
+            document.getElementById('repMonth').value = month;
+
+            const filtered = db.ops
+                .filter(o => o.date.startsWith(month))
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            let html = `<table><tr><th>Data</th><th>Auto</th><th>Typ</th><th>Ilość</th><th>Akcje</th></tr>`;
+            let spz = 0, swz = 0;
+
+            filtered.forEach((o, idx) => {
+                html += `<tr>
+                    <td>${o.date}</td>
+                    <td>${o.veh}</td>
+                    <td>${o.type}</td>
+                    <td>${o.vol.toFixed(2)} mp</td>
+                    <td>
+                        <button class="btn-edit" onclick="editOp(${idx}, '${month}')">Edytuj</button>
+                        <button onclick="deleteOp(${idx}, '${month}')" style="color:red; background:none; font-size:12px; width:auto; padding:0 5px;">Usuń</button>
+                    </td>
+                </tr>`;
+                if (o.type === 'PZ') spz += o.vol; else swz += o.vol;
+            });
+
+            html += `</table>`;
+            html += `<div style="margin-top:15px; padding:10px; background:#f0f9ff; border-radius:8px;">
+                <b>SUMA PZ:</b> ${spz.toFixed(2)} mp<br>
+                <b>SUMA WZ:</b> ${swz.toFixed(2)} mp<br>
+                <hr>
+                <b>BILANS MIESIĄCA:</b> ${(spz - swz).toFixed(2)} mp
+            </div>`;
+
+            document.getElementById('reportArea').innerHTML = filtered.length ? html : "Brak operacji w tym miesiącu.";
+            document.getElementById('modalRep').style.display = 'block';
+        }
+
+        function editOp(idx, month) {
+            const filtered = db.ops.filter(o => o.date.startsWith(month));
+            const op = filtered[idx];
+            if (!op) return;
+
+            // znajdź właściwy indeks w db.ops
+            const realIdx = db.ops.findIndex(o => o.date === op.date && o.veh === op.veh && o.type === op.type && o.vol === op.vol);
+            if (realIdx === -1) return;
+
+            document.getElementById('fDate').value = db.ops[realIdx].date;
+            document.getElementById('fType').value = db.ops[realIdx].type;
+            document.getElementById('fVehicle').value = db.ops[realIdx].veh;
+            document.getElementById('fVolume').value = db.ops[realIdx].vol;
+
+            // usuń operację (zamiast edytować w osobnym formularzu)
+            db.ops.splice(realIdx, 1);
+            updateMain();
+            closeModals();
+        }
+
+        function deleteOp(idx, month) {
+            const filtered = db.ops.filter(o => o.date.startsWith(month));
+            const op = filtered[idx];
+            if (!op) return;
+
+            const realIdx = db.ops.findIndex(o => o.date === op.date && o.veh === op.veh && o.type === op.type && o.vol === op.vol);
+            if (realIdx === -1) return;
+
+            if (confirm("Usunąć operację?")) {
+                db.ops.splice(realIdx, 1);
+                updateMain();
+                generateReport();
+            }
+        }
+
+        function closeModals() {
+            document.querySelectorAll('.modal').forEach(m => m.style.display = 'none');
+        }
+
+        function exportToExcel() {
+            const ws = XLSX.utils.json_to_sheet(db.ops);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Historia");
+            XLSX.writeFile(wb, "Magazyn_ResInvest.xlsx");
+        }
+
+        document.getElementById('fDate').valueAsDate = new Date();
+        document.getElementById('repMonth').value = new Date().toISOString().substring(0, 7);
+        updateMain();
+    </script>
+ </body>
+</html>
